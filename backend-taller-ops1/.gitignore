@@ -3,6 +3,9 @@
 /node_modules
 /build
 
+# runtime data (persistencia simulada de HU3)
+/data
+
 # Logs
 logs
 *.log
