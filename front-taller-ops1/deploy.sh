@@ -6,7 +6,10 @@ set -euo pipefail
 # BACKEND_HOST es la IP/host del PC de Ops-Backend en la red del laboratorio
 # (ver taller: Backend y Frontend son dos PCs físicas distintas). Si no se
 # pasa, asumimos que ambos corren en la misma máquina (localhost).
-# Uso en otra PC: BACKEND_HOST=192.168.1.10 PORT=3000 ./deploy.sh
+# BACKEND_PORT: Nest escucha en 0.0.0.0:5000 y ese es el puerto que
+# backend-taller-ops1/deploy.sh abre en el firewall, así que el frontend le
+# habla directo (sin proxy intermedio).
+# Uso en otra PC: BACKEND_HOST=192.168.1.10 ./deploy.sh
 PORT="${PORT:-3000}"
 BACKEND_HOST="${BACKEND_HOST:-localhost}"
 BACKEND_PORT="${BACKEND_PORT:-5000}"
@@ -80,7 +83,20 @@ case "$OS" in
     ;;
 esac
 
-# --- 7. Levantar en modo producción -----------------------------------------
+# --- 7. Detener una corrida anterior, si quedó viva -------------------------
+# Si el script ya se corrió antes, "next start" de esa corrida sigue
+# escuchando en PORT y la nueva instancia fallaría con EADDRINUSE. Lo matamos
+# usando el PID guardado en frontend.pid.
+if [ -f "$PID_FILE" ]; then
+  OLD_PID="$(cat "$PID_FILE" 2>/dev/null || true)"
+  if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+    echo "==> Deteniendo frontend de una corrida anterior (PID=$OLD_PID)..."
+    kill "$OLD_PID" 2>/dev/null || true
+    sleep 1
+  fi
+fi
+
+# --- 8. Levantar en modo producción -----------------------------------------
 # "next start" sirve el build de .next/. Lo dejamos corriendo en background
 # (nohup) para que el script termine y Ops pueda ver logs con
 # `tail -f deploy.log` y detener el proceso con `kill $(cat frontend.pid)`.
