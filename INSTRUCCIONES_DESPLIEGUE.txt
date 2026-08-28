@@ -1,0 +1,69 @@
+INSTRUCCIONES MANUALES DE DESPLIEGUE - FASE 1
+================================================
+Taller 2 - Ingenieria de Software V - Universidad ICESI
+Entrega Dev -> Ops (canal asincronico, sin comunicacion directa)
+
+Este paquete contiene el codigo fuente de dos servicios:
+  - backend-taller-ops1/  -> API REST (NestJS)
+  - front-taller-ops1/    -> Interfaz web (Next.js)
+
+Deben desplegarse en DOS computadores fisicos distintos:
+  PC 1 (Ops-Backend): corre backend-taller-ops1
+  PC 2 (Ops-Frontend): corre front-taller-ops1, y le habla al PC 1 por red local
+
+Requisitos previos en ambos PCs:
+  - Node.js 20 LTS o superior instalado
+  - Habilitar pnpm: corepack enable && corepack prepare pnpm@latest --activate
+  - Firewall del SO activo, bloqueando entrada excepto el puerto indicado abajo
+
+----------------------------------------------------------------------
+PASO 1 - PC 1 (Backend), puerto 5000
+----------------------------------------------------------------------
+1. Copiar la carpeta backend-taller-ops1/ al PC 1.
+2. Abrir una terminal dentro de esa carpeta.
+3. Instalar dependencias:
+       pnpm install --frozen-lockfile
+4. Compilar:
+       pnpm run build
+5. Abrir el puerto 5000/tcp en el firewall:
+     - Linux:   sudo ufw allow 5000/tcp
+     - Windows: netsh advfirewall firewall add rule name="backend-5000" dir=in action=allow protocol=TCP localport=5000
+       (ejecutar la terminal como Administrador)
+6. Arrancar el servicio:
+       pnpm run start:prod
+   El backend queda escuchando en: http://<IP_DEL_PC_1>:5000
+7. Anotar la IP del PC 1 (comando "ipconfig" en Windows o "ip addr" en Linux)
+   y comunicarsela a Ops-Frontend por el canal asincronico (correo/carpeta compartida).
+
+----------------------------------------------------------------------
+PASO 2 - PC 2 (Frontend), puerto 3000
+----------------------------------------------------------------------
+1. Copiar la carpeta front-taller-ops1/ al PC 2.
+2. Abrir una terminal dentro de esa carpeta.
+3. Instalar dependencias:
+       pnpm install --frozen-lockfile
+4. Configurar la URL del backend (usar la IP anotada en el Paso 1.7):
+     - Linux/Git Bash:
+           export NEXT_PUBLIC_BACKEND_URL="http://<IP_DEL_PC_1>:5000"
+     - Windows (PowerShell):
+           $env:NEXT_PUBLIC_BACKEND_URL = "http://<IP_DEL_PC_1>:5000"
+5. Compilar (con la variable ya exportada en el mismo paso 4):
+       pnpm run build
+6. Abrir el puerto 3000/tcp en el firewall:
+     - Linux:   sudo ufw allow 3000/tcp
+     - Windows: netsh advfirewall firewall add rule name="frontend-3000" dir=in action=allow protocol=TCP localport=3000
+7. Arrancar el servicio:
+       pnpm run start
+   El frontend queda accesible en: http://<IP_DEL_PC_2>:3000
+
+----------------------------------------------------------------------
+VALIDACION
+----------------------------------------------------------------------
+Abrir http://<IP_DEL_PC_2>:3000 desde un navegador y probar la suma de
+dos numeros (HU1). Si el frontend no logra contactar al backend, revisar:
+  - Que el backend siga corriendo (paso 1.6)
+  - Que el firewall del PC 1 tenga el puerto 5000 abierto
+  - Que NEXT_PUBLIC_BACKEND_URL apunte a la IP correcta del PC 1
+
+Cualquier fallo en produccion se reporta como "ticket escrito" describiendo
+el sintoma (segun regla de Fase 1), no por comunicacion directa con Dev.
