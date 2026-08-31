@@ -1,4 +1,4 @@
-# Bitácora — Bloque 1: Contenerización con Docker (Taller 3)
+# Bitácora — Taller 3 CI/CD (Bloques 1-3)
 
 Registro de qué se hizo, por qué, y qué problemas salieron en el camino, para repasar antes de sustentar.
 
@@ -88,9 +88,40 @@ networks:
 - **Conflictos de nombre de contenedor**: `docker-compose.yml` fija `container_name: calc-backend`/`calc-frontend`; si ya existían contenedores manuales (`docker run --name calc-backend ...`) de pruebas anteriores, Compose no puede reusar el nombre y falla con "Conflict". Se resuelve identificando el contenedor viejo (`docker ps -a --filter name=...`) y borrándolo (`docker rm <nombre>`) antes de `docker compose up`.
 - **Docker Desktop agrupa contenedores de Compose bajo una fila de "proyecto"** (nombrada por la carpeta del repo), colapsable con la flecha `>` — no es un contenedor nuevo ni misterioso, es la agrupación visual del stack completo. `docker compose ps` desde terminal es la forma confiable de ver qué hay realmente corriendo.
 
-## 6. Estado actual y qué falta del taller
+## 6. Bloque 2 — Integración Continua con GitHub Actions
+
+**Artefactos**: `.github/workflows/ci.yml` (2 jobs) + `scripts/test_endpoints.sh`.
+
+**Decisión de rama**: el workflow dispara en `push`/`pull_request` a `master`, no `main` — el enunciado del taller usa `main` como ejemplo genérico, pero este repo usa `master` como rama principal (confirmado con `git status`). Copiar el ejemplo literal habría dejado el workflow sin disparar nunca.
+
+**Dos jobs, en dos VMs (runners de GitHub) independientes y efímeras**:
+- `build`: solo corre `docker compose build`, para detectar rápido si algún Dockerfile se rompió (ej. el bug del `.dockerignore` vacío del frontend, visto en la sección 2).
+- `test`, con `needs: build` (no arranca si `build` falla): corre `pnpm test` (Jest, lógica interna) **y además** levanta el stack real (`docker compose up -d --build`) para correr `scripts/test_endpoints.sh` (verificación HTTP end-to-end). Se decidió "ambos" en vez de solo uno de los dos, para cubrir lógica interna y comportamiento real de los endpoints en la misma corrida.
+
+**Por qué `needs: build` no evita reconstruir en `test`**: cada job de GitHub Actions corre en una máquina virtual nueva y aislada — las imágenes que compiló `build` no persisten hacia `test` (son VMs distintas). `needs:` sirve como *gate* (fail-fast), no como cache de artefactos; para cachear de verdad haría falta algo como `actions/cache` sobre capas de Docker (no implementado, quedó fuera de alcance de este taller).
+
+**`pnpm/action-setup@v4` + `actions/setup-node@v4`**: fijan pnpm 11.3.0 y Node 22 en el runner de CI, igual que `corepack prepare` en los Dockerfiles — misma lógica de reproducibilidad, aplicada ahora al entorno de CI en vez del contenedor.
+
+**`scripts/test_endpoints.sh`** (distinto de `deploy.sh`: uno *verifica* una app ya corriendo, el otro *despliega*): espera a que `/health` responda (reintentos, por si el contenedor tarda unos segundos en aceptar conexiones tras `docker compose up -d`), y valida contra los criterios de aceptación de las HUs: `/health` → `status: ok` (HU5), `/sum` calcula bien (HU1), `/divide` entre 0 → **400** (HU4), `/history` responde (HU3), frontend sirve HTML en `/`.
+
+**Detalle de line endings**: `core.autocrlf=true` en Windows generó un warning al comitear el `.sh` ("LF will be replaced by CRLF"). Se verificó con `git show :scripts/test_endpoints.sh | xxd` que el *objeto* guardado en el repo mantiene LF puro (el warning solo describe la copia de trabajo local) — importante, porque un script con CRLF rompe el shebang (`#!/usr/bin/env bash\r`) al ejecutarse en el runner Linux de GitHub Actions.
+
+**Resultado**: workflow corrido en GitHub, ambos jobs en verde.
+
+## 7. Bloque 3 (en preparación) — Entrega Continua en la Red del Salón
+
+Este bloque requiere una segunda PC física (la que actuará como PC Ops en el salón) y un equipo par asignado por el profesor — no disponibles todavía en esta sesión. Se dejaron preparados dos artefactos para activarlos cuando corresponda:
+
+- **`deploy-other.sh`** (raíz): reemplaza el enfoque de `deploy.sh` (Taller 2, bare-metal) por uno que despliega **remotamente por SSH**. Decisiones:
+  - Transferencia con `tar czf - ... | ssh ... | tar xzf -` en vez de `scp -r`: permite excluir `node_modules`, `.git`, `dist`, `.next` y, crucialmente, `backend-taller-ops1/data` (para no pisar el historial ya acumulado en la máquina destino en redespliegues sucesivos).
+  - Se reconstruye la imagen **en la máquina destino** (`docker compose build` remoto) en vez de transferir imágenes ya armadas — más simple, evita depender de que ambas PCs compartan exactamente la misma arquitectura/versión de Docker.
+  - Configuración por variables de entorno (`REMOTE_HOST`, `REMOTE_DIR`, `SSH_KEY`), mismo estilo que los `deploy.sh` existentes (`PORT`, `BACKEND_HOST`, etc.).
+
+- **`RUNNER_SETUP.md`** (raíz): guía para registrar un self-hosted runner en la otra PC y conectar SSH con el equipo par. Decisión explícita: **no se agregó todavía** el job `deploy` (`runs-on: [self-hosted, ...]`) a `ci.yml` — hacerlo antes de que el runner exista dejaría ese job esperando indefinidamente en cada push, sin fallar pero ensuciando cada corrida. Se agrega solo cuando el runner esté en estado "Idle" y el SSH probado manualmente.
+
+## 8. Estado actual y qué falta del taller
 
 - ✅ Bloque 1 (Docker/Compose): backend y frontend contenerizados, comunicándose por red interna, con volumen persistente.
-- ⏳ Bloque 2: `.github/workflows/ci.yml` con jobs `build` y `test` en `ubuntu-latest`.
-- ⏳ Bloque 3: runner autoalojado, conexión SSH entre PCs Ops, `deploy.sh` de entrega remota.
+- ✅ Bloque 2 (CI): `ci.yml` con jobs `build` y `test` corriendo en GitHub Actions, en verde.
+- ⏳ Bloque 3: `deploy-other.sh` y `RUNNER_SETUP.md` listos; falta activarlos en la segunda PC física (registrar runner, probar SSH, agregar job `deploy` a `ci.yml`) cuando se tenga equipo par asignado.
 - ⏳ Bloque 4: verificación cruzada / monitoreo centralizado por el docente.
