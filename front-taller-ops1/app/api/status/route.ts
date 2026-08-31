@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { BACKEND_URL } from "@/app/lib/api";
+import { BACKEND_URL } from "@/app/lib/backend";
 
 export async function GET() {
   let backend: unknown = { reachable: false };

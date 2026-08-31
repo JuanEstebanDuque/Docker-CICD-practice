@@ -1,0 +1,30 @@
+services:
+  backend:
+    build:
+      context: ./backend-taller-ops1
+    container_name: calc-backend
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend-taller-ops1/data:/app/data
+    networks:
+      - calc-net
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./front-taller-ops1
+    environment:
+      - BACKEND_URL=http://backend:5000
+    container_name: calc-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - calc-net
+    restart: unless-stopped
+
+networks:
+  calc-net:
+    driver: bridge

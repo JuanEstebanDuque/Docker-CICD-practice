@@ -1,6 +1,3 @@
-export const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000";
-
 export type Operation = "sum" | "subtract" | "multiply" | "divide";
 
 export const OPERATION_LABEL: Record<Operation, string> = {
@@ -32,7 +29,7 @@ export async function calculate(
   a: number,
   b: number,
 ): Promise<CalculateResult> {
-  const res = await fetch(`${BACKEND_URL}/${OPERATION_ENDPOINT[operation]}`, {
+  const res = await fetch(`/api/calc/${OPERATION_ENDPOINT[operation]}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ a, b }),
@@ -55,7 +52,7 @@ export interface HistoryEntry {
 }
 
 export async function fetchHistory(limit = 5): Promise<HistoryEntry[]> {
-  const res = await fetch(`${BACKEND_URL}/history?limit=${limit}`);
+  const res = await fetch(`/api/history?limit=${limit}`);
   if (!res.ok) throw new Error("No se pudo cargar el historial.");
   const json = (await res.json()) as { data: HistoryEntry[] };
   return json.data;
@@ -69,7 +66,7 @@ export interface BackendHealth {
 }
 
 export async function fetchBackendHealth(): Promise<BackendHealth> {
-  const res = await fetch(`${BACKEND_URL}/health`);
+  const res = await fetch(`/api/health`);
   if (!res.ok) throw new Error("Backend no disponible.");
   return res.json() as Promise<BackendHealth>;
 }
