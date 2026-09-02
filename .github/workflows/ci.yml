@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: [self-hosted, JUANDUQUE875]
+    runs-on: self-hosted
     steps:
       - name: Descargar el código del repo
         uses: actions/checkout@v4
@@ -17,7 +17,7 @@ jobs:
         run: docker compose build
 
   test:
-    runs-on: [self-hosted, JUANDUQUE875]
+    runs-on: self-hosted
     needs: build
     steps:
       - name: Descargar el código del repo
@@ -57,7 +57,7 @@ jobs:
         run: docker compose down
 
   deploy:
-    runs-on: [self-hosted, JUANDUQUE875]
+    runs-on: self-hosted
     needs: test
     steps:
       - name: Descargar el código del repo
