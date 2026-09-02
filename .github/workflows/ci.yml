@@ -46,10 +46,8 @@ jobs:
       - name: Levantar el stack completo con Docker Compose
         run: docker compose up -d --build
 
-      - name: Dar permisos de ejecución al script de pruebas
-        run: chmod +x scripts/test_endpoints.sh
-
       - name: Verificar los endpoints
+        shell: bash
         run: ./scripts/test_endpoints.sh
 
       - name: Apagar el stack
