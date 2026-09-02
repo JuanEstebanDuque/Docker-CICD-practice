@@ -55,9 +55,10 @@ jobs:
       - name: Apagar el stack
         if: always()
         run: docker compose down
+        
   deploy:
     runs-on: ubuntu-latest
-    needs: build
+    needs: test
     steps:
       - name: Descargar el código del repo
         uses: actions/checkout@v4
