@@ -55,3 +55,16 @@ jobs:
       - name: Apagar el stack
         if: always()
         run: docker compose down
+  deploy:
+    steps:
+      - name: Descargar el código del repo
+        working-directory: ./backend-taller-ops1
+        uses: actions/checkout@v4
+
+      - name: Construir las imágenes de Docker
+        working-directory: ./backend-taller-ops1
+        run: docker compose build
+
+      - name: Levantar el stack completo con Docker Compose
+        working-directory: ./backend-taller-ops1
+        run: docker compose up -d --build
