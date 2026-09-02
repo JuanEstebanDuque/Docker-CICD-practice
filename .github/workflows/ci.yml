@@ -65,7 +65,7 @@ jobs:
       - name: Build y push a docker hub
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./backend-taller-ops1
           file: ./Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
