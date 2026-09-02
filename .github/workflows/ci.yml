@@ -58,7 +58,6 @@ jobs:
   deploy:
     steps:
       - name: Descargar el código del repo
-        working-directory: ./backend-taller-ops1
         uses: actions/checkout@v4
 
       - name: Construir las imágenes de Docker
