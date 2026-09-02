@@ -47,7 +47,7 @@ jobs:
         run: docker compose up -d --build
 
       - name: Verificar los endpoints
-        shell: bash
+        shell: 'C:\Program Files\Git\bin\bash.exe -e {0}'
         run: ./scripts/test_endpoints.sh
 
       - name: Apagar el stack
